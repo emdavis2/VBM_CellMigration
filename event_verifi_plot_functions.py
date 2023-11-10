@@ -75,7 +75,7 @@ def plot_cumnumevents(fon_events, foff_events, t_end, save_path):
 # save_path => path to folder where plot will be saved to (type: string)
 #Outputs:
 # figures of histograms for the number of force on and force off events that occur in a 5 minute window over the simulation
-def plot_events_1min_win(fon_events, foff_events, t_end, dt, save_path):
+def plot_events_5min_win(fon_events, foff_events, t_end, dt, save_path):
     fon_events_min = np.reshape(fon_events, (int(t_end/5),int(5/dt))) #reshape to find sum over window of events per minute
     fon_events_min = np.sum(fon_events_min, axis=1) #find sum over window
     plt.hist(fon_events_min, density=True)
