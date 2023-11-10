@@ -171,17 +171,15 @@ def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt):
 #Outputs:
 # dy => the right hand side of the ODE for the equations of motion for each vertex where dx and dy are together in one long list of len(2*N) [0-(N-1) values are x positions and N-((N*2)-1) are the y positions] (type: ndarray of floats)
 # normal_dir => outward normal angle for each vector that has len(N) (type: list of floats)
-def UpdateVertices(y_val,force_arr,N,l0,A_0):
+def UpdateVertices(y_val,force_arr,N,l0,A_0,nu=1.67,lamb=80,Kc=80):
+  #Define parameters
+  # nu = 1.67 #viscous friction factor [nN min um^(-1)]
+  # lamb = 80 #stiffness of cortex [nN um^(-1)]
+  # Kc = 80 #lamb #cytoplasmic stiffness (not sure if this is the right value...)
 
   #Define x and y positions for each vertex
   x = y_val[0:N]
   y = y_val[N:N*2]
-
-
-  #Define parameters
-  nu = 1.67 #viscous friction factor [nN min um^(-1)]
-  lamb = 80 #stiffness of cortex [nN um^(-1)]
-  Kc = 80 #lamb #cytoplasmic stiffness (not sure if this is the right value...)
 
   #Calculate 
   xy = np.concatenate((np.reshape(x,(N,1)),np.reshape(y,(N,1))),axis=1)
@@ -217,8 +215,8 @@ def UpdateVertices(y_val,force_arr,N,l0,A_0):
   rxn_x = []
   rxn_y = []
   for i in range(N):
-    rxn_x.append((1/nu)*((E[i-1]*np.cos(dir_for_oppl[i])) + (E[i]*np.cos(dir_for_l[i])) + ((p/N) + force_arr[i])*np.cos(normal_dir[i])))
-    rxn_y.append((1/nu)*((E[i-1]*np.sin(dir_for_oppl[i])) + (E[i]*np.sin(dir_for_l[i])) + ((p/N) + force_arr[i])*np.sin(normal_dir[i])))
+    rxn_x.append((1/nu)*((E[i-1]*np.cos(dir_for_oppl[i])) + (E[i]*np.cos(dir_for_l[i])) + ((p/N) + force_arr[i])*np.cos(normal_dir[i])) + 5*np.random.normal(scale=1))
+    rxn_y.append((1/nu)*((E[i-1]*np.sin(dir_for_oppl[i])) + (E[i]*np.sin(dir_for_l[i])) + ((p/N) + force_arr[i])*np.sin(normal_dir[i])) + 5*np.random.normal(scale=1))
 
   #ODEs
   dy = [rxn_x, rxn_y]
