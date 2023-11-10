@@ -15,10 +15,11 @@ from general_functions import *
 # new_w => updated direction of internal polarity bias direction (type: int)
 def update_pol_dir(w_prev, N, dt):
   k_w = 0.1
+  sigma_w = 1
   rand_num = np.random.uniform()
   prob_change_w = k_w * dt
   if rand_num < prob_change_w :
-    new_w = round(np.random.normal(w_prev,1))%N
+    new_w = round(np.random.normal(w_prev,sigma_w))%N
   else:
     new_w = w_prev
   return new_w
@@ -42,12 +43,12 @@ def find_offrate(force_on_ind, pol_ang, N):
 
   #specify mu and sigma for function associated with off rate
   mu_opp = (pol_ang+int(N/2))%N
-  sigma = 3
+  sigma_off = 3
 
   #create a long "unfolded" array of vertex indices (not modular)
   x_val = np.arange(-N,2*N)
   #calculate off rates with unfolded array
-  k_off = (np.exp(-1*(((x_val-mu_opp)/sigma)**2)))
+  k_off = (np.exp(-1*(((x_val-mu_opp)/sigma_off)**2)))
 
   #create modular version of unfolded array
   x_val_mod = x_val%N
@@ -78,12 +79,12 @@ def find_onrate(force_off_ind, pol_ang, N):
 
   #specify mu and sigma for function associated with on rate
   mu = pol_ang
-  sigma = 3
+  sigma_on = 3
 
   #create a long "unfolded" array of vertex indices (not modular)
   x_val = np.arange(-N,2*N)
   #calculate on rates with unfolded array
-  k_on = (np.exp(-1*(((x_val-mu)/sigma)**2)))
+  k_on = (np.exp(-1*(((x_val-mu)/sigma_on)**2)))
 
   #create modular version of unfolded array
   x_val_mod = x_val%N
