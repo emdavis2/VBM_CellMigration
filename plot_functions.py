@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter
+import seaborn as sns
 
 from general_functions import *
 from shape_and_acf_functions import *
@@ -24,6 +25,24 @@ def plot_centroid(Y,N,save_path):
     plt.ylabel(r'y position [$\mu m$]')
     plt.title('centroid position of cell over time')
     plt.savefig(save_path+'/centroid_pos.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+#function that plots centroid position of many cells over time
+#Inputs:
+# data_sim => list of dataframes that contains x, y coordinates of cell centroid as well shape and motion metrics for each track (type: list of pandas dataframes)
+# N => number of vertices that represents cell (type: int)
+# save_path => path to folder where plot will be saved to (type: string)
+#Output:
+# plot of centroid position saved as png to directory specified in save_path variable
+def plot_centroid_manycells(data_sim,N,save_path):
+    for df in data_sim:
+        plt.plot(df['x'],df['y'])
+    plt.xlabel(r'x position [$\mu m$]')
+    plt.ylabel(r'y position [$\mu m$]')
+    plt.title('centroid position of cell over time')
+    plt.savefig(save_path+'/centroid_pos_manycells.png')
     plt.clf()
 
 ###################################################################################################################################################
@@ -131,4 +150,83 @@ def plot_vel_acf_onecell(x_vel, y_vel, save_path, min_track_length=30):
     plt.xlabel('lag (5 min)')
     plt.title("Autocorrelaton velocity")
     plt.savefig(save_path+'/velocity_acf.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+#function to plot average velocity acf across lags from many cells
+#Inputs:
+# data_sim => list of dataframes that contains x, y coordinates of cell centroid as well shape and motion metrics for each track (type: list of pandas dataframes)
+# save_path => path to folder where plot will be saved to (type: string)
+# Optional:
+# min_track_length => specified track length to cut off autocorrelation results (what value of tau to cut off at)
+#Outputs:
+# figure of average velocity autocorrelation across lags from many cells up to min_track_length-4
+def plot_vel_acf_manycells(data_sim, save_path, min_track_length=30):
+    poslagaverage = np.zeros(30000)
+    Nposlagtotal = np.zeros(30000)
+    all_ac = []
+    for df in data_sim:
+        combined = make_comb_df(df['vx'], df['vy'])
+        poslagsmean, Nposlags, neglagsmean, Nneglags = xcorr_vector(combined, min_track_length)
+
+        #remove nans here
+        poslagsmean[np.isnan(poslagsmean)] = 0
+        all_ac.append(poslagsmean)
+        poslagaverage[0:len(poslagsmean)] += poslagsmean # Nposlags*poslagsmean
+
+    poslagaverage /= len(data_sim) #Nposlagtotal
+
+    std_err = np.std(all_ac,axis=0,ddof=1)/np.sqrt(np.shape(all_ac)[0])
+
+    plt.errorbar(np.arange(0,min_track_length-4),poslagaverage[0:min_track_length-4],yerr=std_err)
+    plt.hlines(y=0,xmin=0,xmax=100,color='k')
+    plt.xlim(0,min_track_length-4)
+    plt.ylim(-0.5,1)
+    plt.xlabel('lag (5 min)')
+    plt.title("Autocorrelaton velocity")
+    plt.savefig(save_path+'/velocity_acf_avgcells.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+#function to plot boxplots for motion and shape metrics calculated in make_shape_motion_df()
+#Inputs:
+# data_sim => list of dataframes that contains x, y coordinates of cell centroid as well shape and motion metrics for each track (type: list of pandas dataframes)
+# save_path => path to folder where plot will be saved to (type: string)
+#Outputs:
+# figures of boxplots for D/T, Speed, Area, and solidity
+def make_shape_motion_boxplots(data_sim, save_path):
+    DT = []
+    speed = []
+    solidity = []
+    area = []
+    for df in data_sim:
+        DT.append(df['DoverT'][0])
+        speed.append(df['Speed'][0])
+        solidity.append(df['Solidity'][0])
+        area.append(df['Area'][0])
+
+    sns.boxplot(data=DT)
+    plt.xlabel('From model with {} cells simulated'.format(len(data_sim)))
+    plt.ylabel('D/T')
+    plt.savefig(save_path+'/DT_boxplot.png')
+    plt.clf()
+
+    sns.boxplot(data=np.array(speed))
+    plt.xlabel('From model with {} cells simulated'.format(len(data_sim)))
+    plt.ylabel('Speed $\mu m$/min')
+    plt.savefig(save_path+'/Speed_boxplot.png')
+    plt.clf()
+
+    sns.boxplot(data=np.array(area))
+    plt.xlabel('From model with {} cells simulated'.format(len(data_sim)))
+    plt.ylabel('Area $\mu m$^2')
+    plt.savefig(save_path+'/Area_boxplot.png')
+    plt.clf()
+
+    sns.boxplot(data=np.array(solidity))
+    plt.xlabel('From model with {} cells simulated'.format(len(data_sim)))
+    plt.ylabel('Area $\mu m$^2')
+    plt.savefig(save_path+'/Solidity_boxplot.png')
     plt.clf()
