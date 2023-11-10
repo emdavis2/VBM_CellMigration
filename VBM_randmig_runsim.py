@@ -7,6 +7,7 @@ from general_functions import *
 from pol_dir_VBM_func import *
 from plot_functions import *
 from shape_and_acf_functions import *
+from event_verifi_plot_functions import *
 
 #Global variable for number of vertices to represent cell shape
 global N
@@ -59,3 +60,8 @@ onewalker_df = make_shape_motion_df(Y, dt, N)
 
 #Plot velocity acf
 plot_vel_acf_onecell(onewalker_df['vx'],onewalker_df['vy'],save_path)
+
+plot_polaritybias_time(pol_dir_all,T,save_path)
+plot_timebtw_force_onoff(add_p_events, remove_p_events, dt, save_path)
+plot_cumnumevents(add_p_events, remove_p_events, T_tot, save_path)
+plot_events_5min_win(add_p_events, remove_p_events, T_tot, dt, save_path)
