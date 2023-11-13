@@ -35,7 +35,7 @@ num_nearest_neighbors0 = calc_num_neighbors_protruding(force_on_ind0,N)
 y0 = [x, y]
 y0 = list(chain.from_iterable(y0))
 
-save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures/figures_randmig_manycells'
+save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures_randmig_manycells'
 if not os.path.exists(save_path):
   os.mkdir(save_path)
 
