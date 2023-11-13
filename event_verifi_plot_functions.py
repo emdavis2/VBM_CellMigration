@@ -58,7 +58,7 @@ def plot_cumnumevents(fon_events, foff_events, t_end, save_path):
     plt.savefig(save_path+'/cum_num_fon.png')
     plt.clf()
 
-    plt.plot(np.cumsum(foff_events))
+    plt.plot(np.linspace(0,t_end,len(fon_events)),np.cumsum(foff_events))
     plt.xlabel('time (min)')
     plt.ylabel('Number of events for force off')
     plt.savefig(save_path+'/cum_num_foff.png')
