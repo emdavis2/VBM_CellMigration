@@ -35,9 +35,26 @@ num_nearest_neighbors0 = calc_num_neighbors_protruding(force_on_ind0,N)
 y0 = [x, y]
 y0 = list(chain.from_iterable(y0))
 
-save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures_randmig_manycells'
+#set parameter values
+k_w = 0.1
+sigma_w = 1
+sigma_off = 1
+sigma_on = 1
+a = 0.05
+b = 2
+params = [k_w, sigma_w, sigma_off, sigma_on, a, b]
+
+save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures/randmig_manycells'
 if not os.path.exists(save_path):
   os.mkdir(save_path)
+
+#create new file to write parameters to
+other_params = ['N: {}\n'.format(N), 'magnitude: {}\n'.format(magnitude), 'd: {}\n'.format(d), 'nu: 1.67\n', 'lamb: 80\n', 'Kc: 80\n']
+param_vals = open(save_path+'/params.txt','w')
+file_lines = other_params + ['k_w: {}\n'.format(k_w), 'sigma_w: {}\n'.format(sigma_w), 'sigma_off: {}\n'.format(1), 'sigma_on: {}\n'.format(sigma_on), 'k_off: {}+({}*np.exp(-1*(((x_val-mu_opp)/sigma_off)**2)))\n'.format(a, b), 'k_on: {}+({}*np.exp(-1*(((x_val-mu)/sigma_on)**2)))\n'.format(a, b)]
+#write lines to text file 
+param_vals.writelines(file_lines)
+param_vals.close() 
 
 num_walkers = 2
 #Where data is stored from all walkers in sim
@@ -47,7 +64,7 @@ for walker in range(num_walkers):
     #initial polarity bias direction
     pol_dir0 = round(np.random.uniform(0,N))%N
 
-    T, Y, Norm_Dir, force_ind, remove_p_events, add_p_events, pol_dir_all = EulerSolver(UpdateVertices, 0, T_tot, dt, y0, force_on_ind0, magnitude, pol_dir0, num_nearest_neighbors0, N, l0, A_0)
+    T, Y, Norm_Dir, force_ind, remove_p_events, add_p_events, pol_dir_all = EulerSolver(UpdateVertices, 0, T_tot, dt, y0, force_on_ind0, magnitude, pol_dir0, num_nearest_neighbors0, N, l0, A_0, params)
 
     #Make dataframe of shape and motion metrics for track
     onewalker_df = make_shape_motion_df(Y, dt, N)

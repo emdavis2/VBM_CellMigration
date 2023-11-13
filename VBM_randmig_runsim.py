@@ -35,16 +35,33 @@ dt = .05
 
 num_nearest_neighbors0 = calc_num_neighbors_protruding(force_on_ind0,N)
 
-#set initial conditions
+#set initial conditions for vertex coordinates
 y0 = [x, y]
 y0 = list(chain.from_iterable(y0))
 
-T, Y, Norm_Dir, force_ind, remove_p_events, add_p_events, pol_dir_all = EulerSolver(UpdateVertices, 0, T_tot, dt, y0, force_on_ind0, magnitude, pol_dir0, num_nearest_neighbors0, N, l0, A_0)
+#set parameter values
+k_w = 0.1
+sigma_w = 1
+sigma_off = 1
+sigma_on = 1
+a = 0.05
+b = 5
+params = [k_w, sigma_w, sigma_off, sigma_on, a, b]
 
-save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures'
+T, Y, Norm_Dir, force_ind, remove_p_events, add_p_events, pol_dir_all = EulerSolver(UpdateVertices, 0, T_tot, dt, y0, force_on_ind0, magnitude, pol_dir0, num_nearest_neighbors0, N, l0, A_0, params)
+
+save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures/randmig_1cell_sigmaonwqsigmaoffeq1_ap05_b1'
 
 if not os.path.exists(save_path):
   os.mkdir(save_path)
+
+#create new file to write parameters to
+other_params = ['N: {}\n'.format(N), 'magnitude: {}\n'.format(magnitude), 'd: {}\n'.format(d), 'nu: 1.67\n', 'lamb: 80\n', 'Kc: 80\n']
+param_vals = open(save_path+'/params.txt','w')
+file_lines = other_params + ['k_w: {}\n'.format(k_w), 'sigma_w: {}\n'.format(sigma_w), 'sigma_off: {}\n'.format(1), 'sigma_on: {}\n'.format(sigma_on), 'k_off: {}+({}*np.exp(-1*(((x_val-mu_opp)/sigma_off)**2)))\n'.format(a, b), 'k_on: {}+({}*np.exp(-1*(((x_val-mu)/sigma_on)**2)))\n'.format(a, b)]
+#write lines to text file 
+param_vals.writelines(file_lines)
+param_vals.close() 
 
 #Plot cell centroid position over time and cell shape at beginning and end of simulation
 plot_centroid(Y, N, save_path)
@@ -53,7 +70,7 @@ plot_cellshape(Y, 0, N, save_path)
 plot_cellshape(Y, T_tot+1, N, save_path)
 
 #Make movie of cell progressing over time
-#make_movie(Y, T_tot, dt, N, -400, 400, save_path)
+make_movie(Y, T_tot, dt, N, -1000, 1000, save_path)
 
 #Make dataframe of shape and motion metrics for track
 onewalker_df = make_shape_motion_df(Y, dt, N)
@@ -61,7 +78,7 @@ onewalker_df = make_shape_motion_df(Y, dt, N)
 #Plot velocity acf
 plot_vel_acf_onecell(onewalker_df['vx'],onewalker_df['vy'],save_path)
 
-plot_polaritybias_time(pol_dir_all,T,save_path)
+plot_polaritybias_time(pol_dir_all,T,N,save_path)
 plot_timebtw_force_onoff(add_p_events, remove_p_events, dt, save_path)
 plot_cumnumevents(add_p_events, remove_p_events, T_tot, save_path)
 plot_events_5min_win(add_p_events, remove_p_events, T_tot, dt, save_path)
