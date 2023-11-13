@@ -11,11 +11,12 @@ from general_functions import *
 # w_prev => previous direction of internal polarity bias direction (type: int)
 # N => number of vertices that represents cell (type: int)
 # dt => time step size (type: float)
+#Optional Inputs:
+# k_w => rate at which polarity direction updates (1/min) (type: float)
+# sigma_w => variance in normal distribution when updating internal polarity direction
 #Output:
 # new_w => updated direction of internal polarity bias direction (type: int)
-def update_pol_dir(w_prev, N, dt):
-  k_w = 0.1
-  sigma_w = 1
+def update_pol_dir(w_prev, N, dt, k_w=0.1, sigma_w=1):
   rand_num = np.random.uniform()
   prob_change_w = k_w * dt
   if rand_num < prob_change_w :
@@ -33,9 +34,13 @@ def update_pol_dir(w_prev, N, dt):
 # force_on_ind => indices of vertices that currently have outward normal force "on" (type: ndarray of ints)
 # pol_ang => direction of internal polarity bias direction (output from update_pol_dir()) (type: int)
 # N => number of vertices that represents cell (type: int)
+#Optional Input:
+# sigma_off => variance in off rate distribution (spread of how many vertices' rates are affected by internal polarity direction) (type: float or int)
+# a => amount to shift rate function up
+# b => amount to scale rate by
 #Output:
 # off_rates => list of off rates associated with each vertex that has a force on (type: list of floats)
-def find_offrate(force_on_ind, pol_ang, N):
+def find_offrate(force_on_ind, pol_ang, N, sigma_off=3, a=0.0, b=1.0):
   #create an array to store off rates (one off rate per force indice)
   off_rates = np.zeros(len(force_on_ind))
   #find indices opposite the indices that currently have on forces
@@ -43,12 +48,12 @@ def find_offrate(force_on_ind, pol_ang, N):
 
   #specify mu and sigma for function associated with off rate
   mu_opp = (pol_ang+int(N/2))%N
-  sigma_off = 3
+  #sigma_off = 3
 
   #create a long "unfolded" array of vertex indices (not modular)
   x_val = np.arange(-N,2*N)
   #calculate off rates with unfolded array
-  k_off = (np.exp(-1*(((x_val-mu_opp)/sigma_off)**2)))
+  k_off = a+(b*np.exp(-1*(((x_val-mu_opp)/sigma_off)**2)))
 
   #create modular version of unfolded array
   x_val_mod = x_val%N
@@ -71,20 +76,24 @@ def find_offrate(force_on_ind, pol_ang, N):
 # force_off_ind => indices of vertices that currently have outward normal force "off" (type: ndarray of ints)
 # pol_ang => direction of internal polarity bias direction (output from update_pol_dir()) (type: int)
 # N => number of vertices that represents cell (type: int)
+#Optional Input:
+# sigma_on => variance in on rate distribution (spread of how many vertices' rates are affected by internal polarity direction) (type: float or int)
+# a => amount to shift rate function up
+# b => amount to scale rate by
 #Output:
 # on_rates => list of on rates associated with each vertex that has a force off (type: list of floats)
-def find_onrate(force_off_ind, pol_ang, N):
+def find_onrate(force_off_ind, pol_ang, N, sigma_on=3, a=0.0, b=1.0):
   #create an array to store on rates (one on rate per force indice)
   on_rates = np.zeros(len(force_off_ind))
 
   #specify mu and sigma for function associated with on rate
   mu = pol_ang
-  sigma_on = 3
+  #sigma_on = 3
 
   #create a long "unfolded" array of vertex indices (not modular)
   x_val = np.arange(-N,2*N)
   #calculate on rates with unfolded array
-  k_on = (np.exp(-1*(((x_val-mu)/sigma_on)**2)))
+  k_on = a+(b*np.exp(-1*(((x_val-mu)/sigma_on)**2)))
 
   #create modular version of unfolded array
   x_val_mod = x_val%N
@@ -111,7 +120,7 @@ def find_onrate(force_off_ind, pol_ang, N):
 # force_on_ind => updated indices of vertices that currently have outward normal force "on" (type: ndarray of ints)
 # remove_protr_event_num => talley of number of events (force turned off at vertex) that occured during this time step - 0 means nothing happened (no forces turned off) and >1 means that many vertices had force turned off (type: int)
 # add_protr_event_num => talley of number of events (force turned on at vertex) that occured during this time step - 0 means nothing happened (no force added) and >1 means that many vertices had force turned on (type: int)
-def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt):
+def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt,sigma_off=3,sigma_on=3):
   #check and see event number is exponential
   remove_protr_event_num = 0
   add_protr_event_num = 0
@@ -121,12 +130,7 @@ def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt):
     ind_to_remove = []
     #calculate rates force transitions to off based off pol ang
     #indicies opposite to direction of pol ang are more likely to transition to force off
-    # mu = pol_ang
-    # mu_opp = (pol_ang+int(N/2))%N
-    # sigma = 2
-    # opp_force_on_ind = (force_on_ind+int(N/2))%N
-    # k_off = (np.exp(-1*(((opp_force_on_ind-mu_opp)/sigma)**2)))
-    k_off = find_offrate(force_on_ind, pol_ang, N)
+    k_off = find_offrate(force_on_ind, pol_ang, N, sigma_off)
     #probability that site with force on will transition to state with force off
     prob_remove_protr = k_off * dt
     #draw random number and see if it is less than the probability to stop exerting force
@@ -144,10 +148,7 @@ def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt):
   ind_to_add = []
   #calculate rates force transitions to on based off pol ang
   #indices that are near the direction of the pol ang are more likely to transition to on
-  # mu = pol_ang
-  # sigma = 2
-  # k_on = (np.exp(-1*(((force_off_ind-mu)/sigma)**2)))
-  k_on = find_onrate(force_off_ind, pol_ang, N)
+  k_on = find_onrate(force_off_ind, pol_ang, N, sigma_on)
   prob_add_protr = k_on * dt
   rand_num2 = np.random.uniform(size=len(force_off_ind))
   for ind,v2 in enumerate(rand_num2):
@@ -240,6 +241,7 @@ def UpdateVertices(y_val,force_arr,N,l0,A_0,nu=1.67,lamb=80,Kc=80):
 # N => number of vertices that represents cell (type: int)
 # l0 => initial length of edge of cell between vertices (type: float)
 # A_0 => resting area [um^2] of cell (type: float)
+# params => list of parameters associated with rates for force on/off and polarity bias direction in order [k_w, sigma_w, sigma_off, sigma_on] (type: list of floats)
 #Outputs:
 # T => time points for which solution of ODE was solved at with len(((t_end-t_start)/h)+1) (type: list of floats)
 # Y => x and y positions for each vertex for each time point with (type: list of ndarrays of floats; list is shape=(len(T),N) and arrays are len=N*2)
@@ -248,7 +250,7 @@ def UpdateVertices(y_val,force_arr,N,l0,A_0,nu=1.67,lamb=80,Kc=80):
 # remove_protr_events => number of force off events at each time step (type: list of ints with len=t_end/dt)
 # add_protr_events => number of force on events at each time step (type: list of ints with len=t_end/dt)
 # pol_dir_all => the direction of the polarity bias at each time step (type: list of ints with len=t_end/dt)
-def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, pol_dir0, num_nearest_neighbors0, N, l0, A_0):
+def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, pol_dir0, num_nearest_neighbors0, N, l0, A_0, params):
   T = [t_start] #np.arange(1, t, h)
   Y = [y0]
   Norm_Dir = []
@@ -270,6 +272,13 @@ def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, pol_dir0
 
   pol_dir_all = [pol_dir_prev]
 
+  #unpack params (params = [k_w, sigma_w, sigma_off, sigma_on])
+  k_w = params[0]
+  sigma_w = params[1]
+  sigma_off = params[2]
+  sigma_on = params[3]
+
+  #Now solve ODE
   for i in range(number_steps):
     force_arr = np.zeros(N)
     if len(force_on_ind) > 0:
@@ -289,9 +298,9 @@ def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, pol_dir0
     #number of nearest neighbors for each site protruding
     num_nearest_neighbors = calc_num_neighbors_protruding(force_on_ind,N)
 
-    pol_dir = update_pol_dir(pol_dir_prev, N, dt)
+    pol_dir = update_pol_dir(pol_dir_prev, N, dt, k_w, sigma_w)
 
-    force_on_ind, remove_protr_event_num, add_protr_event_num = add_and_remove_protrusions(all_vertices,force_on_ind,pol_dir,N,dt)
+    force_on_ind, remove_protr_event_num, add_protr_event_num = add_and_remove_protrusions(all_vertices,force_on_ind,pol_dir,N,dt,sigma_off,sigma_on)
 
     remove_protr_events.append(remove_protr_event_num)
     add_protr_events.append(add_protr_event_num)
