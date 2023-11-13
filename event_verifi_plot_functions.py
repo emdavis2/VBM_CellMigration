@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 # save_path => path to folder where plot will be saved to (type: string)
 #Outputs:
 # figure of what vertex the polarity bias was pointing to over time for the simulation
-def plot_polaritybias_time(pol_dir_all, T, save_path):
+def plot_polaritybias_time(pol_dir_all, T, N, save_path):
     plt.plot(T,pol_dir_all)
+    plt.ylim(-1,N)
     plt.xlabel('time')
     plt.ylabel('vertex index number')
     plt.title('Direction of polarity bias over time')
@@ -36,7 +37,7 @@ def plot_timebtw_force_onoff(fon_events, foff_events, dt, save_path):
 
     time_between_foff_events = np.diff(np.nonzero(foff_events)[0])*dt
     plt.hist(time_between_foff_events,density=False)
-    plt.title('Time between foce off events')
+    plt.title('Time between force off events')
     plt.xlabel('time (min)')
     plt.savefig(save_path+'/time_between_foff.png')
     plt.clf()
@@ -79,13 +80,13 @@ def plot_events_5min_win(fon_events, foff_events, t_end, dt, save_path):
     fon_events_min = np.reshape(fon_events, (int(t_end/5),int(5/dt))) #reshape to find sum over window of events per minute
     fon_events_min = np.sum(fon_events_min, axis=1) #find sum over window
     plt.hist(fon_events_min, density=True)
-    plt.title('Number of foce on events in 5 minute window')
+    plt.title('Number of force on events in 5 minute window')
     plt.savefig(save_path+'/num_fon_5minwin.png')
     plt.clf()
 
     foff_events_min = np.reshape(foff_events, (int(t_end/5),int(5/dt))) #reshape to find sum over window of events per minute
     foff_events_min = np.sum(foff_events_min, axis=1) #find sum over window
     plt.hist(foff_events_min, density=True)
-    plt.title('Number of fore off events in 5 minute window')
+    plt.title('Number of force off events in 5 minute window')
     plt.savefig(save_path+'/num_foff_5minwin.png')
     plt.clf()
