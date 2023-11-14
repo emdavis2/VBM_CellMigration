@@ -120,7 +120,7 @@ def find_onrate(force_off_ind, pol_ang, N, sigma_on=3, a=0.0, b=1.0):
 # force_on_ind => updated indices of vertices that currently have outward normal force "on" (type: ndarray of ints)
 # remove_protr_event_num => talley of number of events (force turned off at vertex) that occured during this time step - 0 means nothing happened (no forces turned off) and >1 means that many vertices had force turned off (type: int)
 # add_protr_event_num => talley of number of events (force turned on at vertex) that occured during this time step - 0 means nothing happened (no force added) and >1 means that many vertices had force turned on (type: int)
-def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt,sigma_off=3,sigma_on=3):
+def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt,sigma_off,sigma_on,a,b):
   #check and see event number is exponential
   remove_protr_event_num = 0
   add_protr_event_num = 0
@@ -130,7 +130,7 @@ def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt,sigma_off=
     ind_to_remove = []
     #calculate rates force transitions to off based off pol ang
     #indicies opposite to direction of pol ang are more likely to transition to force off
-    k_off = find_offrate(force_on_ind, pol_ang, N, sigma_off)
+    k_off = find_offrate(force_on_ind, pol_ang, N, sigma_off,a,b)
     #probability that site with force on will transition to state with force off
     prob_remove_protr = k_off * dt
     #draw random number and see if it is less than the probability to stop exerting force
@@ -148,7 +148,7 @@ def add_and_remove_protrusions(all_vertices,force_on_ind,pol_ang,N,dt,sigma_off=
   ind_to_add = []
   #calculate rates force transitions to on based off pol ang
   #indices that are near the direction of the pol ang are more likely to transition to on
-  k_on = find_onrate(force_off_ind, pol_ang, N, sigma_on)
+  k_on = find_onrate(force_off_ind, pol_ang, N, sigma_on,a,b)
   prob_add_protr = k_on * dt
   rand_num2 = np.random.uniform(size=len(force_off_ind))
   for ind,v2 in enumerate(rand_num2):
@@ -277,6 +277,8 @@ def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, pol_dir0
   sigma_w = params[1]
   sigma_off = params[2]
   sigma_on = params[3]
+  a = params[4]
+  b = params[5]
 
   #Now solve ODE
   for i in range(number_steps):
@@ -300,7 +302,7 @@ def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, pol_dir0
 
     pol_dir = update_pol_dir(pol_dir_prev, N, dt, k_w, sigma_w)
 
-    force_on_ind, remove_protr_event_num, add_protr_event_num = add_and_remove_protrusions(all_vertices,force_on_ind,pol_dir,N,dt,sigma_off,sigma_on)
+    force_on_ind, remove_protr_event_num, add_protr_event_num = add_and_remove_protrusions(all_vertices,force_on_ind,pol_dir,N,dt,sigma_off,sigma_on,a,b)
 
     remove_protr_events.append(remove_protr_event_num)
     add_protr_events.append(add_protr_event_num)
