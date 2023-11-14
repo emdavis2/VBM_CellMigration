@@ -213,7 +213,7 @@ def make_shape_motion_boxplots(data_sim, save_path):
     plt.savefig(save_path+'/DT_boxplot.png')
     plt.clf()
 
-    sns.boxplot(data=np.array(speed))
+    sns.boxplot(data=np.array(speed)/5) #because sampling rate is every 5 minutes
     plt.xlabel('From model with {} cells simulated'.format(len(data_sim)))
     plt.ylabel('Speed $\mu m$/min')
     plt.savefig(save_path+'/Speed_boxplot.png')
