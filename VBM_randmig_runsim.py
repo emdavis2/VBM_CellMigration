@@ -40,17 +40,17 @@ y0 = [x, y]
 y0 = list(chain.from_iterable(y0))
 
 #set parameter values
-k_w = 0.1
-sigma_w = 1
-sigma_off = 1
-sigma_on = 1
+k_w = 0.3
+sigma_w = 2
+sigma_off = 3
+sigma_on = 3
 a = 0.05
-b = 5
+b = 2
 params = [k_w, sigma_w, sigma_off, sigma_on, a, b]
 
 T, Y, Norm_Dir, force_ind, remove_p_events, add_p_events, pol_dir_all = EulerSolver(UpdateVertices, 0, T_tot, dt, y0, force_on_ind0, magnitude, pol_dir0, num_nearest_neighbors0, N, l0, A_0, params)
 
-save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures/randmig_1cell_sigmaonwqsigmaoffeq1_ap05_b1'
+save_path = '/Users/elizabethdavis/Desktop/Models/VBM/figures/randmig_1cell_sigmaonwqsigmaoffeq1_ap{}_b{}'.format(a, b)
 
 if not os.path.exists(save_path):
   os.mkdir(save_path)
@@ -70,7 +70,7 @@ plot_cellshape(Y, 0, N, save_path)
 plot_cellshape(Y, T_tot+1, N, save_path)
 
 #Make movie of cell progressing over time
-make_movie(Y, T_tot, dt, N, -1000, 1000, save_path)
+#make_movie(Y, T_tot, dt, N, -1000, 1000, save_path)
 
 #Make dataframe of shape and motion metrics for track
 onewalker_df = make_shape_motion_df(Y, dt, N)

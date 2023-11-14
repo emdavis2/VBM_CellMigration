@@ -45,7 +45,7 @@ for p in param_list:
     sigma_off = 1
     sigma_on = 1
     a = 0.05
-    b = 5
+    b = 10
     params = [k_w, sigma_w, sigma_off, sigma_on, a, b]
 
 

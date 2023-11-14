@@ -18,7 +18,7 @@ magnitude = 50 #0.05 * (0.3*N*l0/0.4) * 2000 [nN]
 force_on_ind0 = np.array([]) #needs to be array
 
 #initialize cell coordinates and get rest area
-d = 100 #cell diameter [um]
+d = 50 #cell diameter [um]
 l0 = d*np.sin(np.pi/N) #initial length of edge of cell between vertices
 x, y = points_in_cell(d/2,N)
 xy = np.concatenate((np.reshape(x,(N,1)),np.reshape(y,(N,1))),axis=1)
@@ -37,9 +37,9 @@ y0 = list(chain.from_iterable(y0))
 
 #set parameter values
 k_w = 0.1
-sigma_w = 1
-sigma_off = 1
-sigma_on = 1
+sigma_w = 2
+sigma_off = 3
+sigma_on = 3
 a = 0.05
 b = 2
 params = [k_w, sigma_w, sigma_off, sigma_on, a, b]
@@ -56,7 +56,7 @@ file_lines = other_params + ['k_w: {}\n'.format(k_w), 'sigma_w: {}\n'.format(sig
 param_vals.writelines(file_lines)
 param_vals.close() 
 
-num_walkers = 2
+num_walkers = 10
 #Where data is stored from all walkers in sim
 data_sim = []
 for walker in range(num_walkers):
