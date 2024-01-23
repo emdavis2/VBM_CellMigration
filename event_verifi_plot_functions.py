@@ -90,3 +90,35 @@ def plot_events_5min_win(fon_events, foff_events, t_end, dt, save_path):
     plt.title('Number of force off events in 5 minute window')
     plt.savefig(save_path+'/num_foff_5minwin.png')
     plt.clf()
+
+###################################################################################################################################################
+
+#function that plots histogram of on rates and off rates for normal outward force at vertices
+#Inputs:
+# kon_rates => on rates for each vertex at each time step (type: list of ints with len=t_end/dt)
+# koff_rates => off rates for each vertex at each time step (type: list of ints with len=t_end/dt)
+# save_path => path to folder where plot will be saved to (type: string)
+#Outputs:
+# figures of the histogram of on and off rates for forces at each vertex
+def plot_rates_force_onoff(kon_rates, koff_rates, save_path):
+    kon_rates = np.concatenate(kon_rates).ravel()
+    kon_rates = kon_rates[~np.isnan(kon_rates)]
+    plt.hist(kon_rates,density=False)
+    plt.title('rates for force on events')
+    plt.xlabel('events/min')
+    plt.savefig(save_path+'/rates_fon.png')
+    plt.clf()
+
+    koff_rates = np.concatenate(koff_rates).ravel()
+    koff_rates = koff_rates[~np.isnan(koff_rates)]
+    plt.hist(koff_rates,density=False)
+    plt.title('rates for force off events')
+    plt.xlabel('events/min')
+    plt.savefig(save_path+'/rates_foff.png')
+    plt.clf()
+
+    plt.plot(koff_rates)
+    plt.title('rates for force off events')
+    plt.ylabel('events/min')
+    plt.savefig(save_path+'/rates_foff_line.png')
+    plt.clf()

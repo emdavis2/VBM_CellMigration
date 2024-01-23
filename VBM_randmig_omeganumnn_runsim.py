@@ -4,7 +4,7 @@ from itertools import chain
 from shapely.geometry import Polygon, Point
 
 from general_functions import *
-from pol_dir_VBM_func import *
+from VBM_func_omega_numnn import *
 from plot_functions import *
 from shape_and_acf_functions import *
 from event_verifi_plot_functions import *
@@ -13,7 +13,7 @@ from event_verifi_plot_functions import *
 global N
 N = 25
 
-magnitude = 50*N #0.05 * (0.3*N*l0/0.4) * 2000 [nN]
+magnitude = 50 #0.05 * (0.3*N*l0/0.4) * 2000 [nN]
 
 #start with no forces on vertices
 force_on_ind0 = np.array([]) #needs to be array
@@ -40,16 +40,15 @@ y0 = [x, y, [w0]]
 y0 = list(chain.from_iterable(y0))
 
 #set parameter values
-kon_star = 0.05
+kon_star = 0.1
 t_max = 250
-koff_star = 0.05
-koff_max = .1
+koff_star = 0.1
 sigma_off = 30
-params = [kon_star, t_max, koff_star, koff_max, sigma_off]
+params = [kon_star, t_max, koff_star, sigma_off]
 
-T, Y, Norm_Dir, force_ind, remove_p_events, add_p_events, tension, num_nn, kon_rates, koff_rates, bias_ang_true = EulerSolver(UpdateVertices, 0, T_tot, dt, y0, force_on_ind0, magnitude, num_nearest_neighbors0, N, l0, A_0, params)
+T, Y, Norm_Dir, force_ind, remove_p_events, add_p_events, tension, num_nn = EulerSolver(UpdateVertices, 0, T_tot, dt, y0, force_on_ind0, magnitude, num_nearest_neighbors0, N, l0, A_0, params)
 
-save_path = '/Users/elizabeth/Desktop/VBM_CellMigration_updated/figures/randmig_1cell_konstar{}_koffstar{}_tmax{}'.format(kon_star, koff_star, t_max)
+save_path = '/Users/elizabeth/Desktop/VBM_CellMigration_updated/figures/randmig_1cell_omeganumnn_konstar{}_koffstar{}_tmax{}_changeFa'.format(kon_star, koff_star, t_max)
 
 if not os.path.exists(save_path):
   os.mkdir(save_path)
@@ -57,7 +56,7 @@ if not os.path.exists(save_path):
 #create new file to write parameters to
 other_params = ['N: {}\n'.format(N), 'magnitude: {}\n'.format(magnitude), 'd: {}\n'.format(d), 'nu: 1.67\n', 'nu_w: 0.5\n', 'lamb: 80\n', 'Kc: 80\n']
 param_vals = open(save_path+'/params.txt','w')
-file_lines = other_params + ['kon_star: {}\n'.format(kon_star), 't_max: {}\n'.format(t_max), 'koff_star: {}\n'.format(koff_star), 'koff_max: {}\n'.format(koff_max), 'sigma_off: {}\n'.format(sigma_off)]
+file_lines = other_params + ['kon_star: {}\n'.format(kon_star), 't_max: {}\n'.format(t_max), 'koff_star: {}\n'.format(koff_star), 'sigma_off: {}\n'.format(sigma_off)]
 #write lines to text file 
 param_vals.writelines(file_lines)
 param_vals.close() 
@@ -69,8 +68,7 @@ plot_cellshape(Y, 0, N, save_path)
 plot_cellshape(Y, T_tot+1, N, save_path)
 
 #Make movie of cell progressing over time
-#make_movie(Y, T_tot, dt, N, -500, 500, save_path)
-make_movie_polang(Y, T_tot, dt, N, -500, 500, save_path)
+make_movie(Y, T_tot, dt, N, -1000, 1000, save_path)
 
 #Make dataframe of shape and motion metrics for track
 onewalker_df = make_shape_motion_df(Y, dt, N)
@@ -81,14 +79,7 @@ plot_vel_acf_onecell(onewalker_df['vx'],onewalker_df['vy'],save_path)
 plot_timebtw_force_onoff(add_p_events, remove_p_events, dt, save_path)
 plot_cumnumevents(add_p_events, remove_p_events, T_tot, save_path)
 plot_events_5min_win(add_p_events, remove_p_events, T_tot, dt, save_path)
-plot_rates_force_onoff(kon_rates, koff_rates, save_path)
 
 plot_spatial_tension(tension, save_path)
 
-plot_bias_ang(bias_ang_true, save_path)
-
 plot_num_nn(num_nn, save_path)
-
-plot_omega_dir(Y, save_path)
-
-plot_unwrapped_cellboundary(Y, N, save_path)

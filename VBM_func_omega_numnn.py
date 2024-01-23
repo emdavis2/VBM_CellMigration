@@ -36,20 +36,16 @@ def line_intersection(line1, line2):
 # sigma_off => variance in off rate distribution (spread of how vertices' rates are affected by internal polarity direction) (type: float or int)
 #Output:
 # off_rates => list of off rates associated with each vertex that has a force on (type: list of floats)
-def find_offrate(force_on_ind, pol_ang, x, y, N, koff_star=0.1, koff_max=1, sigma_off=30):
+def find_offrate(force_on_ind, pol_ang, x, y, N, koff_star=0.1, sigma_off=30):
   #create an array to store off rates (one off rate per force indice)
   off_rates = np.zeros(len(force_on_ind))
 
   #find direction opposite to polarity angle (pol_ang)
   pol_ang_opp = pol_ang + np.pi
 
-  #calculate cell centroid
-  centroid_x = np.sum(x)/N
-  centroid_y = np.sum(y)/N
-
   #get x and y compnents of the opposite direction polarity angle 
-  x_w = centroid_x + np.cos(pol_ang_opp)
-  y_w = centroid_y + np.sin(pol_ang_opp)
+  x_w = np.cos(pol_ang_opp)
+  y_w = np.sin(pol_ang_opp)
 
   #find the smallest angle between the opposite polarity angle and and the vertices
   min_angle = []
@@ -74,11 +70,11 @@ def find_offrate(force_on_ind, pol_ang, x, y, N, koff_star=0.1, koff_max=1, sigm
 
   #find where the opposite polarity angle lies along cell shape boundary 
   #for cell boundary
-  A = [x1, y1]
+  A = [x1, y2]
   B = [x2, y2]
 
   #for polarity vec 
-  C = [centroid_x, centroid_y]
+  C = [0, 0]
   D = [x_w, y_w]
 
   #this is where the opposite polarity angle vector lies along cell boundary
@@ -107,7 +103,7 @@ def find_offrate(force_on_ind, pol_ang, x, y, N, koff_star=0.1, koff_max=1, sigm
   #calculate off rates for each vertex that has a force on (depends on location relative to opp pol ang)
   for i, ind in enumerate(force_on_ind):
     vertex_loc = total_dist[ind]
-    off_rates[i] = koff_star+(koff_max*np.exp(-1*(((vertex_loc-spatial_loc_w)/sigma_off)**2)))
+    off_rates[i] = koff_star + 0.1+np.exp(-1*(((vertex_loc-spatial_loc_w)/sigma_off)**2))
 
   return off_rates
 
@@ -148,20 +144,17 @@ def find_onrate(force_off_ind, E_vertex, kon_star=0.1, t_max=250):
 # force_on_ind => updated indices of vertices that currently have outward normal force "on" (type: ndarray of ints)
 # remove_protr_event_num => talley of number of events (force turned off at vertex) that occured during this time step - 0 means nothing happened (no forces turned off) and >1 means that many vertices had force turned off (type: int)
 # add_protr_event_num => talley of number of events (force turned on at vertex) that occured during this time step - 0 means nothing happened (no force added) and >1 means that many vertices had force turned on (type: int)
-def add_and_remove_protrusions(all_vertices, force_on_ind, x, y, N, pol_ang, E_vertex, dt, kon_star=0.1, t_max=250, koff_star=0.1, koff_max=1, sigma_off=30):
+def add_and_remove_protrusions(all_vertices, force_on_ind, x, y, N, pol_ang, E_vertex, dt, kon_star=0.1, t_max=250, koff_star=0.1, sigma_off=30):
   #check and see event number is exponential
   remove_protr_event_num = 0
   add_protr_event_num = 0
-  kon_t = np.array([np.nan])
-  koff_t = np.array([np.nan])
   #look at vertices that have a force on - see if any force off events occur
   if len(force_on_ind) > 0:
     #where indices to vertices to be removed will be stored
     ind_to_remove = []
     #calculate rates force transitions to off based off pol ang
     #indicies opposite to direction of pol ang are more likely to transition to force off
-    k_off = find_offrate(force_on_ind, pol_ang, x, y, N, koff_star, koff_max, sigma_off)
-    koff_t = np.concatenate((koff_t,k_off))
+    k_off = find_offrate(force_on_ind, pol_ang, x, y, N, koff_star, sigma_off)
     #probability that site with force on will transition to state with force off
     prob_remove_protr = k_off * dt
     #draw random number and see if it is less than the probability to stop exerting force
@@ -180,7 +173,6 @@ def add_and_remove_protrusions(all_vertices, force_on_ind, x, y, N, pol_ang, E_v
   #calculate rates force transitions to on based off pol ang
   #indices that are near the direction of the pol ang are more likely to transition to on
   k_on = find_onrate(force_off_ind, E_vertex, kon_star, t_max)
-  kon_t = np.concatenate((kon_t,k_on))
   prob_add_protr = k_on * dt
   rand_num2 = np.random.uniform(size=len(force_off_ind))
   for ind,v2 in enumerate(rand_num2):
@@ -190,7 +182,7 @@ def add_and_remove_protrusions(all_vertices, force_on_ind, x, y, N, pol_ang, E_v
 
   force_on_ind = np.append(force_on_ind, ind_to_add).astype('int')
 
-  return force_on_ind, remove_protr_event_num, add_protr_event_num, koff_t, kon_t
+  return force_on_ind, remove_protr_event_num, add_protr_event_num
 
 ###################################################################################################################################################
 
@@ -247,7 +239,7 @@ def UpdateVertices(y_val,force_arr,N,l0,A_0,nu=1.67,lamb=80,Kc=80,nu_w=0.5):
 
   E_vertex = []
   for i in range(len(E)):
-    E_vertex.append(np.abs(E[i]) + np.abs(E[i-1]))
+    E_vertex.append(E[i] + E[i-1])
 
   #Reactions
   rxn_x = []
@@ -257,26 +249,24 @@ def UpdateVertices(y_val,force_arr,N,l0,A_0,nu=1.67,lamb=80,Kc=80,nu_w=0.5):
     rxn_y.append((1/nu)*((E[i-1]*np.sin(dir_for_oppl[i])) + (E[i]*np.sin(dir_for_l[i])) + ((p/N) + force_arr[i])*np.sin(normal_dir[i])) + 5*np.random.normal(scale=1))
     
   # num_nearest_neighbors = calc_num_neighbors_protruding_all_vertices(force_on_ind,N)
-  # bias_ang_ind = np.argmax(E_vertex)
-  # bias_ang = math.atan2(y[bias_ang_ind],x[bias_ang_ind])
-  Fx = np.sum(np.array(E_vertex) * np.cos(normal_dir))
-  Fy = np.sum(np.array(E_vertex) * np.sin(normal_dir))
-  bias_ang = math.atan2(Fy,Fx)
+  num_nearest_neighbors = calc_num_neighbors_protruding_all_vertices(np.nonzero(force_arr)[0],N)
+  bias_ang_ind = np.argmax(num_nearest_neighbors)
+  bias_ang = math.atan2(y[bias_ang_ind],x[bias_ang_ind])
   x_w = np.cos(w)
   y_w = np.sin(w)
   x_ba = np.cos(bias_ang)
   y_ba = np.sin(bias_ang)
   ang_diff = np.arccos(((x_w*x_ba) + (y_w*y_ba))/(np.sqrt(x_ba**2 + y_ba**2) * np.sqrt(x_w**2 + y_w**2)))
   ang_dir = np.sign(x_w*y_ba - y_w*x_ba)
-  # E_base = 100 #nN - basal insignificant tension
-  F_a = np.abs(np.sum((np.array(E_vertex)*np.array(normal_dir)))/N)/np.average(E_vertex) #np.max(E_vertex)/E_base
+  E_base = 100 #nN - basal insignificant tension
+  F_a = 1 #np.max(E_vertex)/E_base
   rxn_w = ang_dir*(1/nu_w)*(F_a*ang_diff + np.random.normal(scale=1))
 
   #ODEs
   dy = [rxn_x, rxn_y, [rxn_w]]
   dy = list(chain.from_iterable(dy))
 
-  return np.array(dy), normal_dir, E_vertex, bias_ang
+  return np.array(dy), normal_dir, E_vertex
 
 ###################################################################################################################################################
 
@@ -308,15 +298,11 @@ def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, num_near
   Y = [y0]
   Norm_Dir = []
   tension = []
-  bias_ang_true = []
   num_nn = []
 
   #test to see if exponential distribution - list of number of events for each time step
   remove_protr_events = []
   add_protr_events = []
-
-  kon_rates = []
-  koff_rates = []
 
   number_steps = int(t_end/dt)
 
@@ -330,24 +316,22 @@ def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, num_near
   kon_star = params[0]
   t_max = params[1]
   koff_star = params[2]
-  koff_max = params[3]
-  sigma_off = params[4]
+  sigma_off = params[3]
 
   #Now solve ODE
   for i in range(number_steps):
     force_arr = np.zeros(N)
     if len(force_on_ind) > 0:
-      force_arr[force_on_ind] = magnitude/N
+      force_arr[force_on_ind] = magnitude
       # force_arr[(force_on_ind+1)%N] = magnitude/2 #use if want direct neighbors to also have force on but with half the magnitude 
       # force_arr[(force_on_ind-1)%N] = magnitude/2
-    m, normal_dir, E_vertex, bias_ang = func(y_prev, force_arr, N, l0, A_0)
+    m, normal_dir, E_vertex = func(y_prev, force_arr, N, l0, A_0)
     y_curr = y_prev + dt*m
     t_curr = t_prev + dt
     Y.append(y_curr)
     T.append(t_curr)
     Norm_Dir.append(normal_dir)
     tension.append(E_vertex)
-    bias_ang_true.append(bias_ang)
 
     y_prev = y_curr
     t_prev = t_curr
@@ -361,12 +345,10 @@ def EulerSolver(func, t_start, t_end, dt, y0, force_on_ind0, magnitude, num_near
     x = y_curr[0:N]
     y = y_curr[N:N*2]
 
-    force_on_ind, remove_protr_event_num, add_protr_event_num, k_off, k_on = add_and_remove_protrusions(all_vertices, force_on_ind, x, y, N, pol_ang, E_vertex, dt, kon_star, t_max, koff_star, koff_max, sigma_off)
+    force_on_ind, remove_protr_event_num, add_protr_event_num = add_and_remove_protrusions(all_vertices, force_on_ind, x, y, N, pol_ang, E_vertex, dt, kon_star, t_max, koff_star, sigma_off)
 
     remove_protr_events.append(remove_protr_event_num)
     add_protr_events.append(add_protr_event_num)
-    kon_rates.append(k_on)
-    koff_rates.append(k_off)
 
 
-  return T, Y, Norm_Dir, force_on_ind, remove_protr_events, add_protr_events, tension, num_nn, kon_rates, koff_rates, bias_ang_true
+  return T, Y, Norm_Dir, force_on_ind, remove_protr_events, add_protr_events, tension, num_nn

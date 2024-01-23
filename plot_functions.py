@@ -5,6 +5,7 @@ import seaborn as sns
 
 from general_functions import *
 from shape_and_acf_functions import *
+from pol_dir_VBM_func import *
 
 #function that plots centroid position of the cell over time
 #Inputs:
@@ -221,12 +222,171 @@ def make_shape_motion_boxplots(data_sim, save_path):
 
     sns.boxplot(data=np.array(area))
     plt.xlabel('From model with {} cells simulated'.format(len(data_sim)))
-    plt.ylabel('Area $\mu m$^2')
+    plt.ylabel('Area') #$\mu m$^2')
     plt.savefig(save_path+'/Area_boxplot.png')
     plt.clf()
 
     sns.boxplot(data=np.array(solidity))
     plt.xlabel('From model with {} cells simulated'.format(len(data_sim)))
-    plt.ylabel('Area $\mu m$^2')
+    plt.ylabel('Area') #$\mu m$^2')
     plt.savefig(save_path+'/Solidity_boxplot.png')
     plt.clf()
+
+###################################################################################################################################################
+
+def plot_spatial_tension(tension, save_path):
+    for l in tension:
+        plt.plot(l)
+    plt.xlabel('vertex number')
+    plt.ylabel('tension (nN?)')
+    plt.savefig(save_path+'/spatialtension.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+def plot_num_nn(num_nn, save_path):
+    for l in num_nn:
+        plt.plot(l)
+    plt.xlabel('vertex number')
+    plt.ylabel('Number of nearest neighbors protruding')
+    plt.savefig(save_path+'/num_nn.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+def plot_omega_dir(Y, save_path):
+    omega_over_time = []
+    for i in range(len(Y)):
+        omega_ti = Y[i][-1]
+        omega_over_time.append(omega_ti%(2*np.pi))
+    plt.plot(omega_over_time)
+    plt.xlabel('time')
+    plt.ylabel('direction of internal polarity')
+    plt.savefig(save_path+'/pol_dir_over_time.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+def plot_bias_ang(bias_ang, save_path):
+    plt.plot(bias_ang)
+    plt.xlabel('time')
+    plt.ylabel('direction of bias angle (true)')
+    plt.savefig(save_path+'/biasangtrue_over_time.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+def plot_unwrapped_cellboundary(Y, N, save_path):
+    total_dist_alltime = []
+    spatial_loc_w_alltime = []
+    for time_point in Y:
+        pol_ang = time_point[-1]
+        #find direction opposite to polarity angle (pol_ang)
+        pol_ang_opp = pol_ang + np.pi
+        x = time_point[0:N]
+        y = time_point[N:N*2]
+        dist_between_ver = []
+        for i in range(len(x)):
+            dist_between_ver.append(np.sqrt((x[i]-x[i-1])**2 + (y[i]-y[i-1])**2))
+        #find cumulative sum of distance between vertices to get "unwrapped" spatial map of cell shape
+        total_dist = np.cumsum(dist_between_ver)
+        total_dist_alltime.append(total_dist)
+
+        #calculate cell centroid
+        centroid_x = np.sum(x)/N
+        centroid_y = np.sum(y)/N
+
+        #get x and y compnents of the opposite direction polarity angle 
+        x_w = centroid_x + np.cos(pol_ang_opp)
+        y_w = centroid_y + np.sin(pol_ang_opp)
+
+        #find the smallest angle between the opposite polarity angle and and the vertices
+        min_angle = []
+        for i in range(len(x)):
+            min_angle.append(np.arccos(((x[i]*x_w) + (y[i]*y_w))/(np.sqrt(x[i]**2 + y[i]**2)*np.sqrt(x_w**2 + y_w**2))))
+        closest_ind = np.argmin(min_angle)
+        #find whether the polarity is to the right or left of that vertex it is closest to
+        ang_dir = np.sign(x_w*y[closest_ind] - y_w*x[closest_ind])
+
+        #name the x and y components of the vertex closest to opposite pol ang
+        x1 = x[closest_ind]
+        y1 = y[closest_ind]
+
+        # find the other point that forms the edge where the polarity angle points towards
+        if ang_dir > 0:
+            x2 = x[closest_ind - 1]
+            y2 = y[closest_ind - 1]
+        else:
+            x2 = x[(closest_ind + 1)%N]
+            y2 = y[(closest_ind + 1)%N]
+
+        #find where the opposite polarity angle lies along cell shape boundary 
+        #for cell boundary
+        A = [x1, y2]
+        B = [x2, y2]
+
+        #for polarity vec 
+        C = [centroid_x, centroid_y]
+        D = [x_w, y_w]
+
+        #this is where the opposite polarity angle vector lies along cell boundary
+        intersec = (line_intersection((A, B), (C, D)))
+        #location of opp pol ang along cell boundary broken up into x and y terms
+        w_x = intersec[0]
+        w_y = intersec[1]
+
+        #get location of opp pol ang in this unwrapped spatial map view
+        if ang_dir > 0:
+            dist = (np.sqrt((x2 - w_x)**2 + (y2 - w_y)**2))%total_dist[-1]
+            spatial_loc_w = (total_dist[closest_ind - 1] + dist)%total_dist[-1]
+        else:
+            dist = (np.sqrt((x1 - w_x)**2 + (y1 - w_y)**2))%total_dist[-1]
+            spatial_loc_w = (total_dist[closest_ind] + dist)%total_dist[-1]
+        #spatial_loc_w_alltime.append(spatial_loc_w)
+        spatial_loc_w_alltime.append(dist)
+    
+    for bound in total_dist_alltime:
+        plt.plot(bound)
+    plt.xlabel('vertex number')
+    plt.ylabel('unwrapped view of cell boundary')
+    plt.savefig(save_path+'/unwrapped_coords.png')
+    plt.clf()
+
+    plt.plot(spatial_loc_w_alltime)
+    plt.xlabel('time')
+    plt.ylabel('unwrapped coordinates of polarity angle')
+    plt.savefig(save_path+'/unwrapped_coords_polang.png')
+    plt.clf()
+
+###################################################################################################################################################
+
+def make_movie_polang(Y,t_end,dt,N,xy_min,xy_max,save_path):
+    fig = plt.figure()
+    ax = plt.axes(xlim=(xy_min, xy_max), ylim=(xy_min, xy_max))
+    line1, = ax.plot([], [])
+    line2, = ax.plot([], [])
+
+    def init():
+        line1.set_data([], [])
+        line2.set_data([], [])
+        return line1, line2
+    def animate(i):
+        x_ti = Y[i][0:N]
+        y_ti = Y[i][N:N*2]
+
+        w_ti = Y[i][-1]
+
+        #calculate cell centroid
+        centroid_x = np.sum(x_ti)/N
+        centroid_y = np.sum(y_ti)/N
+
+        x_ti, y_ti = getCoordToPlot(x_ti, y_ti, N)
+        line1.set_data(x_ti, y_ti)
+        line2.set_data([centroid_x, centroid_x+(10*np.cos(w_ti))], [centroid_y, centroid_y+(10*np.sin(w_ti))])
+        return line1, line2
+
+    anim = FuncAnimation(fig, animate, init_func=init,
+                                frames=int((t_end/dt)), interval=20, blit=True)
+
+    FFwriter = FFMpegWriter(fps=20)
+    anim.save(save_path + '/VBM_sim_movie.mp4', writer=FFwriter)
